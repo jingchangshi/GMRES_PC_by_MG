@@ -1,0 +1,4 @@
+Demonstrate how to use the multigrid solver as a preconditioner for GMRES(from PETSc).
+This demonstration is for the p-Multigrid solver to be used as the preconditioner of GMRES.
+The p-Multigrid is implemented in my high order CFD code - NFR.
+
