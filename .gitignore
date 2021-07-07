@@ -1,0 +1,6 @@
+*.mod
+*.o
+solver
+*.png
+*.dat
+.gdbinit
