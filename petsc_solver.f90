@@ -4,7 +4,6 @@ module petsc_solver_mod
   use petscksp
   !
   use dtype_mod
-  use solver_mod, only: solver_t
   !
   implicit none
   !
@@ -13,7 +12,7 @@ module petsc_solver_mod
   !
   PetscInt, parameter :: nnz_per_row = 3
   !
-  type, extends(solver_t) :: petsc_solver_t
+  type :: petsc_solver_t
     !
     PetscInt :: n
     Mat :: A

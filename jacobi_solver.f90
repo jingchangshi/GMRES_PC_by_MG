@@ -1,14 +1,13 @@
 module jacobi_solver_mod
   !
   use dtype_mod
-  use solver_mod, only: solver_t
   !
   implicit none
   !
   private
   public :: jacobi_solver_t
   !
-  type, extends(solver_t) :: jacobi_solver_t
+  type :: jacobi_solver_t
     !
     integer :: n
     real(wp), dimension(:), allocatable :: u

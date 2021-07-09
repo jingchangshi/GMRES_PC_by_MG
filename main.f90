@@ -1,17 +1,16 @@
 program main
   !
-! #include <petsc/finclude/petscksp.h>
-!   use petscksp
   use dtype_mod
-  use solver_mod, only: solver_t
   use petsc_solver_mod, only: petsc_solver_t
   use jacobi_solver_mod, only: jacobi_solver_t
   use multigrid_solver_mod, only: multigrid_solver_t
   !
   implicit none
   !
-  class(solver_t), allocatable :: solver
-  !>
+  type(jacobi_solver_t), allocatable :: jacobi_solver
+  type(multigrid_solver_t), allocatable :: multigrid_solver
+  type(petsc_solver_t), allocatable :: petsc_solver
+  !>b
   integer :: n
   !>
   real(wp) :: rtol
@@ -132,25 +131,33 @@ program main
 21 format(I0, ", ")
 22 format(I0, "]")
   !
-  if (solver_type==PETSc) then
-    allocate(solver, source = &
-             petsc_solver_t(n, rtol, atol, dtol, maxits, gmres_pc_type))
-  else if (solver_type==Jacobi) then
-    allocate(solver, source = &
-             jacobi_solver_t(n, maxits))
+  if (solver_type==Jacobi) then
+    allocate(jacobi_solver, source=jacobi_solver_t(n, maxits))
   else if (solver_type==Multigrid) then
-    allocate(solver, source = &
-             multigrid_solver_t( &
-               nlevel, mg_slv_type, level_maxits, n, ncycle))
+    allocate(multigrid_solver, source = &
+             multigrid_solver_t(nlevel, mg_slv_type, level_maxits, n, ncycle))
+  else if (solver_type==PETSc) then
+    allocate(petsc_solver, source = &
+             petsc_solver_t(n, rtol, atol, dtol, maxits, gmres_pc_type))
   else
     write(*, *) "solver_type invalid!"
     stop
   end if
   !
-  call solver%Solve()
-  call solver%ShowSaveResult()
+  if (solver_type==Jacobi) then
+    call jacobi_solver%Solve()
+    call jacobi_solver%ShowSaveResult()
+    deallocate(jacobi_solver)
+  else if (solver_type==PETSc) then
+    call petsc_solver%Solve()
+    call petsc_solver%ShowSaveResult()
+    deallocate(petsc_solver)
+  else if (solver_type==Multigrid) then
+    call multigrid_solver%Solve()
+    call multigrid_solver%ShowSaveResult()
+    deallocate(multigrid_solver)
+  end if
   !
-  deallocate(solver)
   !
   ! dx = (one - zero) / real(n, kind(dx))
   ! ! In the serial mode, Istart = 0, Iend = n

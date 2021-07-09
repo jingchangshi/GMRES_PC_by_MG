@@ -1,7 +1,6 @@
 module multigrid_solver_mod
   !
   use dtype_mod
-  use solver_mod, only: solver_t
   use jacobi_solver_mod, only: jacobi_solver_t
   !
   implicit none
@@ -9,13 +8,9 @@ module multigrid_solver_mod
   private
   public :: multigrid_solver_t
   !
-  type :: mg_slv_t
-    class(solver_t), allocatable :: ptr
-  end type mg_slv_t
-  !
-  type, extends(solver_t) :: multigrid_solver_t
+  type :: multigrid_solver_t
     !
-    type(mg_slv_t), dimension(:), allocatable :: solvers
+    type(jacobi_solver_t), dimension(:), allocatable :: jacobi_solvers
     integer :: nlevel
     ! integer :: n
     integer :: maxcycle
@@ -29,7 +24,8 @@ module multigrid_solver_mod
   contains
     !
     procedure :: Prolongate, Restrict
-    procedure :: GetU, SetU, Solve, SetB, CalcResidual, ShowSaveResult, GetN, Free
+    procedure :: Solve, ShowSaveResult, Free
+    ! procedure :: GetU, SetU, SetB, CalcResidual, GetN
     !
   end type multigrid_solver_t
   !
@@ -66,7 +62,7 @@ contains
     slv%maxcycle = maxcycle
     select case (slv_type)
     case (Jacobi)
-      allocate(slv%solvers(1:slv%nlevel))
+      allocate(slv%jacobi_solvers(1:slv%nlevel))
     case (PETSc)
     case default
       write(*, *) "Invalid solver type!"
@@ -83,7 +79,7 @@ contains
       !
       select case (slv_type)
       case (Jacobi)
-        slv%solvers(i)%ptr = jacobi_solver_t(n, level_maxits(i))
+        slv%jacobi_solvers(i) = jacobi_solver_t(n, level_maxits(i))
       case (PETSc)
       case default
         write(*, *) "Invalid solver type!"
@@ -116,8 +112,8 @@ contains
     !
   continue
     !
-    nl = this%solvers(l)%ptr%GetN()
-    nh = this%solvers(h)%ptr%GetN()
+    nl = this%jacobi_solvers(l)%GetN()
+    nh = this%jacobi_solvers(h)%GetN()
     !
     do i = 2, nl-1
       j = i*2
@@ -145,8 +141,8 @@ contains
     !
   continue
     !
-    nl = this%solvers(l)%ptr%GetN()
-    nh = this%solvers(h)%ptr%GetN()
+    nl = this%jacobi_solvers(l)%GetN()
+    nh = this%jacobi_solvers(h)%GetN()
     !
     do i = 2, nl-1
       j = (i-1)*2+1
@@ -155,25 +151,25 @@ contains
     !
   end subroutine Restrict
 
-  subroutine GetU(this, u)
-    !
-    class(multigrid_solver_t) :: this
-    !>
-    real(wp), dimension(:), intent(out) :: u
-    !
-  continue
-    !
-  end subroutine GetU
+  ! subroutine GetU(this, u)
+  !   !
+  !   class(multigrid_solver_t) :: this
+  !   !>
+  !   real(wp), dimension(:), intent(out) :: u
+  !   !
+  ! continue
+  !   !
+  ! end subroutine GetU
 
-  subroutine SetU(this, u)
-    !
-    class(multigrid_solver_t) :: this
-    !>
-    real(wp), dimension(:), intent(in) :: u
-    !
-  continue
-    !
-  end subroutine SetU
+  ! subroutine SetU(this, u)
+  !   !
+  !   class(multigrid_solver_t) :: this
+  !   !>
+  !   real(wp), dimension(:), intent(in) :: u
+  !   !
+  ! continue
+  !   !
+  ! end subroutine SetU
 
   subroutine Solve(this)
     !
@@ -189,53 +185,53 @@ contains
       ! Loop all levels down to the coarest level
       do il = 1, this%nlevel-1
         ! Pre-smooth
-        call this%solvers(il)%ptr%Solve()
+        call this%jacobi_solvers(il)%Solve()
         ! Restrict the residual
-        call this%solvers(il)%ptr%CalcResidual(this%r(il)%v)
+        call this%jacobi_solvers(il)%CalcResidual(this%r(il)%v)
         call this%Restrict(il, il+1, this%r(il)%v, this%r(il+1)%v)
         ! this%solvers(il+1)%ptr%b(:) = this%r(il+1)%v
-        call this%solvers(il+1)%ptr%SetB(this%r(il+1)%v)
-        call this%solvers(il+1)%ptr%SetU(this%z(il+1)%v)
+        call this%jacobi_solvers(il+1)%SetB(this%r(il+1)%v)
+        call this%jacobi_solvers(il+1)%SetU(this%z(il+1)%v)
       end do ! il
       ! Solve on the coarest level
-      call this%solvers(il)%ptr%Solve()
+      call this%jacobi_solvers(il)%Solve()
       ! Loop all levels up to the finest level
       do il = this%nlevel-1, 1, -1
         ! Prolongate
         ! call this%solvers(il+1)%ptr%CalcResidual()
-        call this%solvers(il+1)%ptr%GetU(this%u(il+1)%v)
+        call this%jacobi_solvers(il+1)%GetU(this%u(il+1)%v)
         ! To save memory, use r for e
         call this%Prolongate(il+1, il, this%u(il+1)%v, this%r(il)%v)
-        call this%solvers(il)%ptr%GetU(this%u(il)%v)
+        call this%jacobi_solvers(il)%GetU(this%u(il)%v)
         this%u(il)%v = this%u(il)%v + this%r(il)%v
-        call this%solvers(il)%ptr%SetU(this%u(il)%v)
+        call this%jacobi_solvers(il)%SetU(this%u(il)%v)
         ! Post-smooth
-        call this%solvers(il)%ptr%Solve()
+        call this%jacobi_solvers(il)%Solve()
       end do ! il
       !
     end do ! ic
     !
   end subroutine Solve
 
-  subroutine SetB(this, r)
-    !
-    class(multigrid_solver_t) :: this
-    !>
-    real(wp), dimension(:), intent(in), optional :: r
-    !
-  continue
-    !
-  end subroutine SetB
+  ! subroutine SetB(this, r)
+  !   !
+  !   class(multigrid_solver_t) :: this
+  !   !>
+  !   real(wp), dimension(:), intent(in), optional :: r
+  !   !
+  ! continue
+  !   !
+  ! end subroutine SetB
 
-  subroutine CalcResidual(this, r)
-    !
-    class(multigrid_solver_t) :: this
-    !>
-    real(wp), dimension(:), intent(out) :: r
-    !
-  continue
-    !
-  end subroutine CalcResidual
+  ! subroutine CalcResidual(this, r)
+  !   !
+  !   class(multigrid_solver_t) :: this
+  !   !>
+  !   real(wp), dimension(:), intent(out) :: r
+  !   !
+  ! continue
+  !   !
+  ! end subroutine CalcResidual
 
   subroutine ShowSaveResult(this)
     !
@@ -251,8 +247,8 @@ contains
     write(fn, *) "Vec Object: 1 MPI processes"
     write(fn, *) "  type: seq"
     !
-    call this%solvers(1)%ptr%GetU(this%u(1)%v)
-    n = this%solvers(1)%ptr%GetN()
+    call this%jacobi_solvers(1)%GetU(this%u(1)%v)
+    n = this%jacobi_solvers(1)%GetN()
     do i = 1, n
       write(fn, 11) this%u(1)%v(i)
     end do
@@ -266,17 +262,17 @@ contains
     !
   end subroutine ShowSaveResult
 
-  function GetN(this) result(n)
-    !
-    class(multigrid_solver_t) :: this
-    !
-    integer :: n
-    !
-  continue
-    !
-    ! n = this%n
-    !
-  end function GetN
+  ! function GetN(this) result(n)
+  !   !
+  !   class(multigrid_solver_t) :: this
+  !   !
+  !   integer :: n
+  !   !
+  ! continue
+  !   !
+  !   ! n = this%n
+  !   !
+  ! end function GetN
 
   subroutine DeconstructMultigridSolver(slv)
     !
