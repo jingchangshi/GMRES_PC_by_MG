@@ -8,11 +8,10 @@ module dtype_mod
                          eps12 = 1E-12_wp
 
   integer, parameter :: PETSc = 1, Jacobi = 2, Multigrid = 3
-  integer, parameter :: PC_Jacobi = 1, PC_SOR = 2, PC_ILU = 3, &
-                        PC_MatrDef_Jacobi = 11, &
-                        PC_UserDef_Jacobi = 21
-  integer, parameter :: PC_MatrDefs(1:1) = [PC_MatrDef_Jacobi]
-  integer, parameter :: PC_UserDefs(1:1) = [PC_UserDef_Jacobi]
+  integer, parameter :: PC_Jacobi = 1, PC_SOR = 2, PC_ILU = 3, PC_MG = 4, &
+                        PC_Shell_Jacobi = 11
+  ! integer, parameter :: PC_Shell_MG = 12
+  ! integer, parameter :: PC_UserDefs(1:1) = [PC_UserDef_Jacobi]
   !
   type :: mat1r_t
     real(wp), dimension(:), allocatable :: v

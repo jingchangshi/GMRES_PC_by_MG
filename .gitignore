@@ -4,3 +4,4 @@ solver
 *.png
 *.dat
 .gdbinit
+*.vim

@@ -43,10 +43,16 @@ module petsc_solver_mod
     module procedure ConstructPetscSolver
   end interface petsc_solver_t
   !
+!  Note: Any user-defined Fortran routines MUST be declared as external.
+  external PC_Shell_Jacobi_Apply, PC_Shell_Jacobi_SetUp, PC_Shell_Jacobi_Destroy
+  ! external PC_Shell_MG_Apply, PC_Shell_MG_SetUp, PC_Shell_MG_Destroy
+  !
 contains
   !
   function ConstructPetscSolver(n, rtol, atol, dtol, maxits, gmres_pc_type &
             ) result(slv)
+    !
+    ! use petsc_shell_data_mod, only: petsc_pc_shell_ctx
     !>
     integer, intent(in) :: n
     !>
@@ -112,6 +118,27 @@ contains
       write(*, *) "Using PCILU"
       slv%res_fname = "gmres_ilu.dat"
       call PCSetType(slv%pc, PCILU, ierr)
+    else if (slv%gmres_pc_type==PC_MG) then
+      write(*, *) "Using PCMG"
+      slv%res_fname = "gmres_mg.dat"
+      call PCSetType(slv%pc, PCMG, ierr)
+      ! call PCMGSetType(slv%pc, PC_MG_MULTIPLICATIVE, ierr)
+      ! call PCMGSetCycleType(slv%pc, PC_MG_CYCLE_V, ierr)
+    else if (slv%gmres_pc_type==PC_Shell_Jacobi) then
+      write(*, *) "Using PC_Shell_Jacobi"
+      slv%res_fname = "gmres_shell_jacobi.dat"
+      call PCSetType(slv%pc, PCSHELL, ierr)
+      ! slv%pc_shell_ctx = slv%b
+      ! call VecDuplicate(slv%b,slv%pc_shell_ctx,ierr)
+      ! call VecCopy(slv%b,slv%pc_shell_ctx,ierr)
+      ! allocate(slv%pc_shell_ctx_ptr)
+      ! petsc_pc_shell_ctx%n = 107
+      ! slv%pc_shell_ctx_ptr => petsc_pc_shell_ctx
+      ! call PCShellSetContext(slv%pc, slv%pc_shell_ctx_ptr, ierr)
+      ! call PCShellSetContext(slv%pc, slv%pc_shell_ctx, ierr)
+      call PCShellSetSetUp(slv%pc, PC_Shell_Jacobi_SetUp, ierr)
+      call PCShellSetApply(slv%pc, PC_Shell_Jacobi_Apply, ierr)
+      call PCShellSetDestroy(slv%pc, PC_Shell_Jacobi_Destroy, ierr)
     else
       write(*, *) "gmres_pc_type invalid!"
       stop

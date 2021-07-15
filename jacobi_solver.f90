@@ -24,6 +24,7 @@ module jacobi_solver_mod
     !
     procedure :: SetExactSolution
     procedure :: GetU, SetU, Solve, SetB, CalcResidual, ShowSaveResult, GetN, Free
+    procedure :: SolveAsPreconditioner
     !
   end type jacobi_solver_t
   !
@@ -153,6 +154,26 @@ contains
     this%its = i - 1
     !
   end subroutine Solve
+
+  subroutine SolveAsPreconditioner(this, r, du)
+    !
+    class(jacobi_solver_t) :: this
+    !
+    real(wp), dimension(:), intent(in) :: r
+    !
+    real(wp), dimension(:), intent(out) :: du
+    !
+    integer :: n
+    !
+  continue
+    !
+    n = size(du,dim=1)
+    du(2:n-1) = this%idiag * r(2:n-1)
+    du(1) = r(1)
+    du(n) = r(n)
+    ! this%its = i - 1
+    !
+  end subroutine SolveAsPreconditioner
 
   subroutine CalcResidual(this, r)
     !
