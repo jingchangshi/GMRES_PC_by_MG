@@ -4,13 +4,15 @@ program main
   use petsc_solver_mod, only: petsc_solver_t
   use jacobi_solver_mod, only: jacobi_solver_t
   use multigrid_solver_mod, only: multigrid_solver_t
+  use gmres_solver_mod, only: gmres_solver_t
   !
   implicit none
   !
   type(jacobi_solver_t), allocatable :: jacobi_solver
   type(multigrid_solver_t), allocatable :: multigrid_solver
   type(petsc_solver_t), allocatable :: petsc_solver
-  !>b
+  type(gmres_solver_t), allocatable :: gmres_solver
+  !>
   integer :: n
   !>
   real(wp) :: rtol
@@ -26,13 +28,15 @@ program main
   integer :: solver_type
   !>
   character(len=64) :: level_maxits_input_file
+  !> GMRES dimension
+  integer :: m
   !>
   integer :: argc
   !>
   character(len=64), dimension(:), allocatable :: argv
   !
   integer :: i, j, fn
-  integer :: nlevel, ncycle, mg_slv_type
+  integer :: nlevel, ncycle, mg_slv_type, gmres_info
   integer, dimension(:), allocatable :: level_maxits
   character(len=64) :: str
   !
@@ -46,6 +50,7 @@ program main
   maxits = 1000
   gmres_pc_type = PC_Jacobi
   solver_type = PETSc
+  m = 8
   ! Update based on the cmd line argument
   argc = command_argument_count()
   if (mod(argc,2)/=0) then
@@ -84,9 +89,11 @@ program main
       read(argv(j+1), *) ncycle
     case ("-level_maxits_input_file")
       read(argv(j+1), *) level_maxits_input_file
+    case ("-m")
+      read(argv(j+1), *) m
     case default
-      write(*, 101) argv(j)
-      stop
+      ! write(*, 101) argv(j)
+      ! stop
     end select
   end do
 101 format("Invalid argument: ", A)
@@ -133,6 +140,10 @@ program main
   else if (solver_type==PETSc) then
     allocate(petsc_solver, source = &
              petsc_solver_t(n, rtol, atol, dtol, maxits, gmres_pc_type))
+  else if (solver_type==GMRES) then
+    gmres_info = 1
+    allocate(gmres_solver, source = &
+             gmres_solver_t(m, n, gmres_pc_type, maxits, rtol, atol, dtol, gmres_info))
   else
     write(*, *) "solver_type invalid!"
     stop
@@ -150,6 +161,10 @@ program main
     call multigrid_solver%Solve()
     call multigrid_solver%ShowSaveResult()
     deallocate(multigrid_solver)
+  else if (solver_type==GMRES) then
+    call gmres_solver%Solve()
+    call gmres_solver%ShowSaveResult()
+    deallocate(gmres_solver)
   end if
   !
 end program

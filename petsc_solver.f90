@@ -106,27 +106,31 @@ contains
     call KSPSetTolerances(slv%ksp, slv%rtol, slv%atol, slv%dtol, slv%maxits, ierr)
     !
     call KSPGetPC(slv%ksp, slv%pc, ierr)
-    if (slv%gmres_pc_type==PC_Jacobi) then
+    if (slv%gmres_pc_type==PC_None) then
+      write(*, *) "Using PCNONE"
+      slv%res_fname = "petsc_gmres_none.dat"
+      call PCSetType(slv%pc, PCNONE, ierr)
+    else if (slv%gmres_pc_type==PC_Jacobi) then
       write(*, *) "Using PCJACOBI"
-      slv%res_fname = "gmres_jacobi.dat"
+      slv%res_fname = "petsc_gmres_jacobi.dat"
       call PCSetType(slv%pc, PCJACOBI, ierr)
     else if (slv%gmres_pc_type==PC_SOR) then
       write(*, *) "Using PCSOR"
-      slv%res_fname = "gmres_sor.dat"
+      slv%res_fname = "petsc_gmres_sor.dat"
       call PCSetType(slv%pc, PCSOR, ierr)
     else if (slv%gmres_pc_type==PC_ILU) then
       write(*, *) "Using PCILU"
-      slv%res_fname = "gmres_ilu.dat"
+      slv%res_fname = "petsc_gmres_ilu.dat"
       call PCSetType(slv%pc, PCILU, ierr)
     else if (slv%gmres_pc_type==PC_MG) then
       write(*, *) "Using PCMG"
-      slv%res_fname = "gmres_mg.dat"
+      slv%res_fname = "petsc_gmres_mg.dat"
       call PCSetType(slv%pc, PCMG, ierr)
       ! call PCMGSetType(slv%pc, PC_MG_MULTIPLICATIVE, ierr)
       ! call PCMGSetCycleType(slv%pc, PC_MG_CYCLE_V, ierr)
     else if (slv%gmres_pc_type==PC_Shell_Jacobi) then
       write(*, *) "Using PC_Shell_Jacobi"
-      slv%res_fname = "gmres_shell_jacobi.dat"
+      slv%res_fname = "petsc_gmres_shell_jacobi.dat"
       call PCSetType(slv%pc, PCSHELL, ierr)
       ! slv%pc_shell_ctx = slv%b
       ! call VecDuplicate(slv%b,slv%pc_shell_ctx,ierr)
@@ -144,6 +148,7 @@ contains
       stop
     end if
     call KSPSetFromOptions(slv%ksp, ierr)
+    call KSPView(slv%ksp, PETSC_VIEWER_STDOUT_WORLD, ierr)
     !
     ! call MatView(slv%A, PETSC_VIEWER_STDOUT_SELF, ierr)
     ! call VecView(slv%u, PETSC_VIEWER_STDOUT_SELF, ierr)

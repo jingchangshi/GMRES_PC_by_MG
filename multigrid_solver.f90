@@ -26,7 +26,7 @@ module multigrid_solver_mod
     procedure :: Prolongate, Restrict
     procedure :: Solve, ShowSaveResult, Free
     ! procedure :: GetU, SetU, SetB, CalcResidual, GetN
-    procedure :: SolveAsPreconditioner
+    ! procedure :: SolveAsPreconditioner
     !
   end type multigrid_solver_t
   !
@@ -214,49 +214,49 @@ contains
     !
   end subroutine Solve
 
-  subroutine SolveAsPreconditioner(this, r, du)
-    !
-    class(multigrid_solver_t) :: this
-    !
-    real(wp), dimension(:), intent(in) :: r
-    !
-    real(wp), dimension(:), intent(out) :: du
-    !
-    integer :: ic, il, it, i, j
-    !
-  continue
-    !
-    do ic = 1, this%maxcycle
-      ! Loop all levels down to the coarest level
-      do il = 1, this%nlevel-1
-        ! Pre-smooth
-        call this%jacobi_solvers(il)%Solve()
-        ! Restrict the residual
-        call this%jacobi_solvers(il)%CalcResidual(this%r(il)%v)
-        call this%Restrict(il, il+1, this%r(il)%v, this%r(il+1)%v)
-        ! this%solvers(il+1)%ptr%b(:) = this%r(il+1)%v
-        call this%jacobi_solvers(il+1)%SetB(this%r(il+1)%v)
-        call this%jacobi_solvers(il+1)%SetU(this%z(il+1)%v)
-      end do ! il
-      ! Solve on the coarest level
-      call this%jacobi_solvers(il)%Solve()
-      ! Loop all levels up to the finest level
-      do il = this%nlevel-1, 1, -1
-        ! Prolongate
-        ! call this%solvers(il+1)%ptr%CalcResidual()
-        call this%jacobi_solvers(il+1)%GetU(this%u(il+1)%v)
-        ! To save memory, use r for e
-        call this%Prolongate(il+1, il, this%u(il+1)%v, this%r(il)%v)
-        call this%jacobi_solvers(il)%GetU(this%u(il)%v)
-        this%u(il)%v = this%u(il)%v + this%r(il)%v
-        call this%jacobi_solvers(il)%SetU(this%u(il)%v)
-        ! Post-smooth
-        call this%jacobi_solvers(il)%Solve()
-      end do ! il
-      !
-    end do ! ic
-    !
-  end subroutine SolveAsPreconditioner
+  ! subroutine SolveAsPreconditioner(this, r, du)
+  !   !
+  !   class(multigrid_solver_t) :: this
+  !   !
+  !   real(wp), dimension(:), intent(in) :: r
+  !   !
+  !   real(wp), dimension(:), intent(out) :: du
+  !   !
+  !   integer :: ic, il, it, i, j
+  !   !
+  ! continue
+  !   !
+  !   do ic = 1, this%maxcycle
+  !     ! Loop all levels down to the coarest level
+  !     do il = 1, this%nlevel-1
+  !       ! Pre-smooth
+  !       call this%jacobi_solvers(il)%Solve()
+  !       ! Restrict the residual
+  !       call this%jacobi_solvers(il)%CalcResidual(this%r(il)%v)
+  !       call this%Restrict(il, il+1, this%r(il)%v, this%r(il+1)%v)
+  !       ! this%solvers(il+1)%ptr%b(:) = this%r(il+1)%v
+  !       call this%jacobi_solvers(il+1)%SetB(this%r(il+1)%v)
+  !       call this%jacobi_solvers(il+1)%SetU(this%z(il+1)%v)
+  !     end do ! il
+  !     ! Solve on the coarest level
+  !     call this%jacobi_solvers(il)%Solve()
+  !     ! Loop all levels up to the finest level
+  !     do il = this%nlevel-1, 1, -1
+  !       ! Prolongate
+  !       ! call this%solvers(il+1)%ptr%CalcResidual()
+  !       call this%jacobi_solvers(il+1)%GetU(this%u(il+1)%v)
+  !       ! To save memory, use r for e
+  !       call this%Prolongate(il+1, il, this%u(il+1)%v, this%r(il)%v)
+  !       call this%jacobi_solvers(il)%GetU(this%u(il)%v)
+  !       this%u(il)%v = this%u(il)%v + this%r(il)%v
+  !       call this%jacobi_solvers(il)%SetU(this%u(il)%v)
+  !       ! Post-smooth
+  !       call this%jacobi_solvers(il)%Solve()
+  !     end do ! il
+  !     !
+  !   end do ! ic
+  !   !
+  ! end subroutine SolveAsPreconditioner
 
   ! subroutine SetB(this, r)
   !   !

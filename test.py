@@ -1,24 +1,15 @@
 import numpy as np
 
-n = 8
-A = np.zeros((n+1, n+1))
-u = np.zeros((n+1,))
-b = np.zeros((n+1,))
+lsq_A = np.loadtxt('lsq.dat')
+lsq_A = lsq_A.T
+print(lsq_A)
 
-dx = (1.0-0.0)/n
+lsq_b = np.zeros((5,))
+#  lsq_b[0] = 8.9302855497458768
+lsq_b[0] = 8.8652213975735581
 
-for i in range(1,n):
-    A[i, i-1] = 1 / dx**2
-    A[i, i  ] =-2 / dx**2
-    A[i, i+1] = 1 / dx**2
-i = 0
-A[i, 0] = 1
-i = n
-A[i, n] = 1
-
-for i in range(1,n):
-    b[i] = i*dx * 6.0
-b[0] =-1.0
-b[n] = 0.0
-
-u = np.linalg.solve(A, b)
+lsq_x, lsq_res, A_rank, A_s = np.linalg.lstsq(lsq_A, lsq_b, rcond=None)
+print(lsq_x)
+print(lsq_res)
+lsq_mul = np.matmul(lsq_A, lsq_x)
+print(lsq_mul)
